@@ -769,6 +769,29 @@ input[type=range]::-webkit-slider-thumb {
 #tooltip strong { color: var(--cyan); display: block; margin-bottom: 4px; font-family: 'Orbitron', sans-serif; font-size: 0.65rem; }
 #tooltip span { color: rgba(200,232,255,0.6); }
 
+#hover-trail {
+  position: fixed;
+  width: 2px;
+  background: linear-gradient(180deg, rgba(0,212,255,0.7), rgba(0,212,255,0));
+  box-shadow: var(--glow);
+  display: none;
+  z-index: 4000;
+}
+
+#details-marker {
+  position: fixed;
+  display: none;
+  padding: 6px 10px;
+  font-size: 0.6rem;
+  letter-spacing: 0.18em;
+  color: var(--cyan);
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glow);
+  transform: translateX(-50%);
+  z-index: 4000;
+}
+
 @media(max-width: 768px) {
   .collision-info, .kessler-text, .detection-metrics, .panel-grid, .future-grid { grid-template-columns: 1fr; }
   .process-flow { gap: 4px; }
@@ -798,6 +821,8 @@ input[type=range]::-webkit-slider-thumb {
 
 <!-- TOOLTIP -->
 <div id="tooltip"><strong id="tt-name"></strong><span id="tt-body"></span></div>
+<div id="hover-trail"></div>
+<div id="details-marker">DETAILS BELOW</div>
 
 <!-- MAIN -->
 <div id="main">
@@ -1323,6 +1348,9 @@ function initHero() {
   const raycaster = new THREE.Raycaster();
   const mouse2D = new THREE.Vector2();
   const tooltip = document.getElementById('tooltip');
+  const trailEl = document.getElementById('hover-trail');
+  const markerEl = document.getElementById('details-marker');
+  const collisionSec = document.getElementById('collision');
   let lastMouseScreen = { x: 0, y: 0 };
 
   canvas.addEventListener('mousemove', e => {
@@ -1393,9 +1421,23 @@ function initHero() {
         const nearest = Math.min(...satMeshes.filter((_, i) => i !== d.index).map(s => s.position.distanceTo(obj.position)));
         document.getElementById('tt-body').innerHTML =
           `ALT: ${d.alt}<br>VEL: ${d.vel}<br>NEAREST: ${(nearest * 200).toFixed(1)} km`;
+
+        const trailTop = lastMouseScreen.y + 8;
+        const trailHeight = Math.max(0, window.innerHeight - trailTop - 40);
+        trailEl.style.display = 'block';
+        trailEl.style.left = (lastMouseScreen.x) + 'px';
+        trailEl.style.top = trailTop + 'px';
+        trailEl.style.height = trailHeight + 'px';
+
+        const rect = collisionSec.getBoundingClientRect();
+        markerEl.style.display = 'block';
+        markerEl.style.left = (rect.left + rect.width / 2) + 'px';
+        markerEl.style.top = Math.max(0, rect.top - 24) + 'px';
       }
     } else {
       tooltip.style.display = 'none';
+      trailEl.style.display = 'none';
+      markerEl.style.display = 'none';
     }
 
     // Camera
