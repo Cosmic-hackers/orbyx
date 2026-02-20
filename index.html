@@ -464,26 +464,7 @@ section {
   background: rgba(0,212,255,0.12);
 }
 
-.step-icon {
-  margin-bottom: 6px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  border: 1px solid var(--glass-border);
-  background: rgba(0,212,255,0.08);
-  color: var(--cyan);
-  font-family: 'Orbitron', sans-serif;
-  font-weight: 900;
-}
-.icon-tle::before { content: 'T'; }
-.icon-orb::before { content: 'O'; }
-.icon-pos::before { content: 'P'; }
-.icon-mat::before { content: 'D'; }
-.icon-risk::before { content: 'R'; }
-.icon-alert::before { content: '!'; }
+.step-icon { font-size: 1.2rem; margin-bottom: 6px; }
 .step-name { font-size: 0.55rem; letter-spacing: 0.08em; color: rgba(200,232,255,0.7); line-height: 1.4; }
 
 .step-arrow {
@@ -667,25 +648,7 @@ input[type=range]::-webkit-slider-thumb {
   min-width: 130px;
 }
 
-.hw-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: 1px solid var(--glass-border);
-  background: rgba(0,212,255,0.08);
-  color: var(--cyan);
-  font-family: 'Orbitron', sans-serif;
-  font-weight: 900;
-  margin-bottom: 8px;
-}
-.icon-core::before { content: 'C'; }
-.icon-mqtt::before { content: 'MQ'; }
-.icon-esp::before { content: 'E'; }
-.icon-alarm::before { content: '!'; }
-.icon-notif::before { content: 'N'; }
+.hw-icon { font-size: 2rem; margin-bottom: 8px; }
 .hw-name {
   font-family: 'Orbitron', sans-serif;
   font-size: 0.65rem;
@@ -743,24 +706,10 @@ input[type=range]::-webkit-slider-thumb {
 }
 
 .future-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: 1px solid var(--glass-border);
-  background: rgba(0,212,255,0.08);
-  color: var(--cyan);
-  font-family: 'Orbitron', sans-serif;
-  font-weight: 900;
+  font-size: 1.5rem;
   flex-shrink: 0;
   margin-top: 2px;
 }
-.icon-ai::before { content: 'AI'; }
-.icon-auto::before { content: 'AU'; }
-.icon-net::before { content: 'NT'; }
-.icon-deep::before { content: 'DS'; }
 
 .future-card h3 {
   font-family: 'Orbitron', sans-serif;
@@ -837,11 +786,11 @@ input[type=range]::-webkit-slider-thumb {
   <div class="loader-logo">ORBYX</div>
   <div class="loader-bar"><div class="loader-bar-fill"></div></div>
   <div class="loader-lines">
-    <div class="loader-line">▸ Initializing Orbital Defense Network...</div>
-    <div class="loader-line">▸ Loading Satellite Telemetry...</div>
-    <div class="loader-line">▸ Mapping Orbital Traffic...</div>
+    <div class="loader-line">Initializing Orbital Defense Network...</div>
+    <div class="loader-line">Loading Satellite Telemetry...</div>
+    <div class="loader-line">Mapping Orbital Traffic...</div>
   </div>
-  <div class="loader-status">◉ SYSTEM ONLINE</div>
+  <div class="loader-status">SYSTEM ONLINE</div>
 </div>
 
 <!-- STARFIELD -->
@@ -881,7 +830,7 @@ input[type=range]::-webkit-slider-thumb {
     <div class="hero-overlay">
       <div class="hero-tagline">Real-Time Orbital Monitoring & Collision Prevention</div>
       <div class="hero-title">SECURING<br><span>EARTH'S ORBIT</span></div>
-      <div class="hero-sub">▸ DRAG TO ROTATE · SCROLL TO ZOOM · HOVER SATELLITES ◂</div>
+      <div class="hero-sub">DRAG TO ROTATE · SCROLL TO ZOOM · HOVER SATELLITES</div>
     </div>
 
     <div class="scroll-hint">
@@ -912,7 +861,7 @@ input[type=range]::-webkit-slider-thumb {
       </div>
 
       <div class="warning-badge reveal">
-        ⬤ CONJUNCTION DETECTED — RISK LEVEL: CRITICAL
+        CONJUNCTION DETECTED — RISK LEVEL: CRITICAL
       </div>
 
       <div class="kessler-text reveal">
@@ -931,42 +880,42 @@ input[type=range]::-webkit-slider-thumb {
       <div class="process-flow reveal" id="process-flow">
         <div class="process-step">
           <div class="step-block" data-step="0">
-            <div class="step-icon icon-tle"></div>
+            <div class="step-icon">RADAR</div>
             <div class="step-name">TLE<br>DATA</div>
           </div>
         </div>
         <div class="step-arrow"></div>
         <div class="process-step">
           <div class="step-block" data-step="1">
-            <div class="step-icon icon-orb"></div>
+            <div class="step-icon">EARTH</div>
             <div class="step-name">ORBITAL<br>PROPAGATION</div>
           </div>
         </div>
         <div class="step-arrow"></div>
         <div class="process-step">
           <div class="step-block" data-step="2">
-            <div class="step-icon icon-pos"></div>
+            <div class="step-icon">CALC</div>
             <div class="step-name">3D POSITION<br>CALC</div>
           </div>
         </div>
         <div class="step-arrow"></div>
         <div class="process-step">
           <div class="step-block" data-step="3">
-            <div class="step-icon icon-mat"></div>
+            <div class="step-icon">MATRIX</div>
             <div class="step-name">DISTANCE<br>MATRIX</div>
           </div>
         </div>
         <div class="step-arrow"></div>
         <div class="process-step">
           <div class="step-block" data-step="4">
-            <div class="step-icon icon-risk"></div>
+            <div class="step-icon">RISK</div>
             <div class="step-name">RISK<br>EVALUATION</div>
           </div>
         </div>
         <div class="step-arrow"></div>
         <div class="process-step">
           <div class="step-block" data-step="5">
-            <div class="step-icon icon-alert"></div>
+            <div class="step-icon">ALERT</div>
             <div class="step-name">ALERT<br>GENERATION</div>
           </div>
         </div>
@@ -1035,7 +984,7 @@ input[type=range]::-webkit-slider-thumb {
             <div class="slider-val" id="sl-alt-val">550 km</div>
           </div>
 
-          <button class="btn-trigger" id="btn-trigger">! TRIGGER CONJUNCTION</button>
+          <button class="btn-trigger" id="btn-trigger">TRIGGER CONJUNCTION</button>
         </div>
 
         <div class="output-panel glass-panel">
@@ -1083,31 +1032,31 @@ input[type=range]::-webkit-slider-thumb {
 
       <div class="hw-flow reveal">
         <div class="hw-block glass-panel">
-          <div class="hw-icon icon-core"></div>
+          <div class="hw-icon">ORBIT</div>
           <div class="hw-name">ORBYX CORE</div>
           <div class="hw-desc">Conjunction detected,<br>risk threshold exceeded</div>
         </div>
         <div class="hw-arrow"><div class="hw-signal"></div></div>
         <div class="hw-block glass-panel">
-          <div class="hw-icon icon-mqtt"></div>
+          <div class="hw-icon">SIGNAL</div>
           <div class="hw-name">MQTT BROKER</div>
           <div class="hw-desc">Alert payload<br>transmitted wirelessly</div>
         </div>
         <div class="hw-arrow"><div class="hw-signal"></div></div>
         <div class="hw-block glass-panel">
-          <div class="hw-icon icon-esp"></div>
+          <div class="hw-icon">ESP32</div>
           <div class="hw-name">ESP32</div>
           <div class="hw-desc">Receives JSON<br>alert signal</div>
         </div>
         <div class="hw-arrow"><div class="hw-signal"></div></div>
         <div class="hw-block glass-panel">
-          <div class="hw-icon icon-alarm"></div>
+          <div class="hw-icon">ALERT</div>
           <div class="hw-name">LED + BUZZER</div>
           <div class="hw-desc">Red LED flashes,<br>buzzer activates</div>
         </div>
         <div class="hw-arrow"><div class="hw-signal"></div></div>
         <div class="hw-block glass-panel">
-          <div class="hw-icon icon-notif"></div>
+          <div class="hw-icon">NOTIFY</div>
           <div class="hw-name">NOTIFICATION</div>
           <div class="hw-desc">Wireless push alert<br>to operator device</div>
         </div>
@@ -1135,28 +1084,28 @@ input[type=range]::-webkit-slider-thumb {
 
       <div class="future-grid reveal">
         <div class="future-card glass-panel">
-          <div class="future-icon icon-ai"></div>
+          <div class="future-icon">AI</div>
           <div>
             <h3>AI Collision Prediction</h3>
             <p>Deep learning models trained on historical conjunction data to predict high-risk events days in advance with probabilistic confidence scoring.</p>
           </div>
         </div>
         <div class="future-card glass-panel">
-          <div class="future-icon icon-auto"></div>
+          <div class="future-icon">AUTO</div>
           <div>
             <h3>Autonomous Maneuver Suggestions</h3>
             <p>ORBYX will compute optimal delta-v maneuvers and beam corrective burn parameters directly to satellite operators via secure uplink.</p>
           </div>
         </div>
         <div class="future-card glass-panel">
-          <div class="future-icon icon-net"></div>
+          <div class="future-icon">GLOBAL</div>
           <div>
             <h3>Global Orbital Traffic Coordination</h3>
             <p>Inter-agency data sharing framework enabling real-time coordination between commercial, governmental, and scientific satellite operators worldwide.</p>
           </div>
         </div>
         <div class="future-card glass-panel">
-          <div class="future-icon icon-deep"></div>
+          <div class="future-icon">DEEP</div>
           <div>
             <h3>Deep Space Tracking</h3>
             <p>Extending ORBYX's monitoring envelope beyond GEO to cover cislunar space, Lagrange points, and eventual deep space transit corridors.</p>
@@ -1189,7 +1138,7 @@ setTimeout(() => {
     initControls();
     initReveal();
   }, 800);
-}, 3600);
+}, 1200);
 
 /* ─── STARFIELD ─── */
 function initStarfield() {
@@ -1333,11 +1282,13 @@ function initHero() {
   const raycaster = new THREE.Raycaster();
   const mouse2D = new THREE.Vector2();
   const tooltip = document.getElementById('tooltip');
+  let lastMousePos = { x: 0, y: 0 };
 
   canvas.addEventListener('mousemove', e => {
     const rect = canvas.getBoundingClientRect();
     mouse2D.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
     mouse2D.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+    lastMousePos = { x: e.clientX, y: e.clientY };
   });
 
   // HUD
@@ -1394,8 +1345,8 @@ function initHero() {
       const d = obj.userData;
       if (d.name) {
         tooltip.style.display = 'block';
-        tooltip.style.left = (event.clientX + 14) + 'px';
-        tooltip.style.top = (event.clientY - 10) + 'px';
+        tooltip.style.left = (lastMousePos.x + 14) + 'px';
+        tooltip.style.top = (lastMousePos.y - 10) + 'px';
         document.getElementById('tt-name').textContent = d.name;
         const nearest = Math.min(...satMeshes.filter((_, i) => i !== d.index).map(s => s.position.distanceTo(obj.position)));
         document.getElementById('tt-body').innerHTML =
@@ -1593,7 +1544,7 @@ function initControls() {
     alertsActive++;
     document.getElementById('active-alerts').textContent = alertsActive;
     document.getElementById('high-risk-pair').textContent = `ORBYX-${Math.ceil(Math.random()*3)} / DEBRIS-${String.fromCharCode(65+Math.floor(Math.random()*3))}`;
-    addLog('[WARN] CONJUNCTION TRIGGERED — initiating evasion protocol', true);
+    addLog('⚠ CONJUNCTION TRIGGERED — initiating evasion protocol', true);
     addLog('Maneuver uplink sequence started...', false);
     document.getElementById('risk-bar').style.background = '#ff2244';
     document.getElementById('risk-bar').style.width = '92%';
