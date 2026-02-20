@@ -1169,6 +1169,7 @@ function initHero() {
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(45, canvas.offsetWidth / canvas.offsetHeight, 0.1, 1000);
+  const isMobile = window.matchMedia('(max-width: 768px)').matches;
   camera.position.set(0, 0, 3.5);
 
   // Lighting
@@ -1260,7 +1261,8 @@ function initHero() {
   // Mouse interaction
   let isDragging = false, prevMouse = { x: 0, y: 0 };
   let rotX = 0, rotY = 0;
-  let zoom = 3.5;
+  let zoom = isMobile ? 5.5 : 3.5;
+  camera.position.set(0, 0, zoom);
 
   canvas.addEventListener('mousedown', e => { isDragging = true; prevMouse = { x: e.clientX, y: e.clientY }; });
   window.addEventListener('mouseup', () => { isDragging = false; });
@@ -1544,7 +1546,7 @@ function initControls() {
     alertsActive++;
     document.getElementById('active-alerts').textContent = alertsActive;
     document.getElementById('high-risk-pair').textContent = `ORBYX-${Math.ceil(Math.random()*3)} / DEBRIS-${String.fromCharCode(65+Math.floor(Math.random()*3))}`;
-    addLog('⚠ CONJUNCTION TRIGGERED — initiating evasion protocol', true);
+    addLog('CONJUNCTION TRIGGERED — initiating evasion protocol', true);
     addLog('Maneuver uplink sequence started...', false);
     document.getElementById('risk-bar').style.background = '#ff2244';
     document.getElementById('risk-bar').style.width = '92%';
