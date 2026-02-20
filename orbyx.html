@@ -1,0 +1,1576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ORBYX — Satellite Collision Defense System</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --blue: #00d4ff;
+  --cyan: #00fff7;
+  --navy: #050a1a;
+  --red: #ff2244;
+  --glass: rgba(0,212,255,0.07);
+  --glass-border: rgba(0,212,255,0.18);
+  --glow: 0 0 20px rgba(0,212,255,0.4);
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--navy);
+  color: #c8e8ff;
+  font-family: 'Share Tech Mono', monospace;
+  overflow-x: hidden;
+}
+
+/* SCANLINE OVERLAY */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* LOADING SCREEN */
+#loader {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  transition: opacity 0.8s ease;
+}
+
+#loader.fade-out { opacity: 0; pointer-events: none; }
+
+.loader-grid {
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(rgba(0,212,255,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(0,212,255,0.06) 1px, transparent 1px);
+  background-size: 60px 60px;
+  animation: gridFadeIn 1s ease forwards;
+  opacity: 0;
+}
+
+@keyframes gridFadeIn { to { opacity: 1; } }
+
+.loader-logo {
+  font-family: 'Orbitron', sans-serif;
+  font-size: clamp(2.5rem, 8vw, 5rem);
+  font-weight: 900;
+  color: var(--blue);
+  text-shadow: 0 0 40px var(--blue), 0 0 80px rgba(0,212,255,0.3);
+  letter-spacing: 0.2em;
+  animation: logoIn 0.5s 0.8s ease both, glitch 0.1s 1.2s, glitch 0.08s 1.35s;
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes logoIn { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
+
+@keyframes glitch {
+  0% { transform: translate(0); filter: none; }
+  20% { transform: translate(-3px, 2px); filter: hue-rotate(90deg); }
+  40% { transform: translate(3px, -2px); filter: hue-rotate(-90deg); }
+  60% { transform: translate(-2px, 0); }
+  80% { transform: translate(2px, 0); }
+  100% { transform: translate(0); filter: none; }
+}
+
+.loader-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+  z-index: 1;
+  text-align: center;
+}
+
+.loader-line {
+  font-size: 0.75rem;
+  color: var(--cyan);
+  opacity: 0;
+  animation: lineIn 0.4s ease forwards;
+  letter-spacing: 0.12em;
+}
+.loader-line:nth-child(1) { animation-delay: 1.4s; }
+.loader-line:nth-child(2) { animation-delay: 1.9s; }
+.loader-line:nth-child(3) { animation-delay: 2.4s; }
+
+@keyframes lineIn { to { opacity: 1; } }
+
+.loader-status {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #00ff88;
+  text-shadow: 0 0 20px #00ff88;
+  opacity: 0;
+  animation: lineIn 0.5s 3.1s ease forwards;
+  position: relative;
+  z-index: 1;
+  letter-spacing: 0.3em;
+}
+
+.loader-bar {
+  width: 240px;
+  height: 2px;
+  background: rgba(0,212,255,0.15);
+  position: relative;
+  z-index: 1;
+}
+.loader-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--blue), var(--cyan));
+  box-shadow: var(--glow);
+  animation: barFill 3s 1s ease forwards;
+  width: 0;
+}
+@keyframes barFill { to { width: 100%; } }
+
+/* MAIN CONTENT */
+#main { opacity: 0; transition: opacity 0.8s ease; }
+#main.visible { opacity: 1; }
+
+/* STARFIELD */
+#starfield {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* NAV */
+nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 1000;
+  padding: 16px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(5,10,26,0.7);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.nav-logo {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 1.3rem;
+  font-weight: 900;
+  color: var(--blue);
+  text-shadow: var(--glow);
+  letter-spacing: 0.2em;
+}
+
+.nav-links {
+  display: flex;
+  gap: 28px;
+  list-style: none;
+}
+
+.nav-links a {
+  text-decoration: none;
+  color: rgba(200,232,255,0.6);
+  font-size: 0.7rem;
+  letter-spacing: 0.15em;
+  transition: color 0.3s, text-shadow 0.3s;
+}
+.nav-links a:hover {
+  color: var(--cyan);
+  text-shadow: 0 0 10px var(--cyan);
+}
+
+.nav-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.65rem;
+  color: #00ff88;
+  letter-spacing: 0.1em;
+}
+.status-dot {
+  width: 7px; height: 7px;
+  background: #00ff88;
+  border-radius: 50%;
+  box-shadow: 0 0 10px #00ff88;
+  animation: blink 1.5s ease-in-out infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+/* SECTIONS */
+section {
+  position: relative;
+  z-index: 1;
+}
+
+/* HERO */
+#hero {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+#hero-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.hero-hud {
+  position: absolute;
+  top: 90px;
+  right: 28px;
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(10px);
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 200px;
+  box-shadow: var(--glow);
+}
+
+.hud-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  gap: 16px;
+}
+.hud-label { color: rgba(200,232,255,0.5); }
+.hud-val { color: var(--cyan); font-weight: bold; }
+.hud-val.warn { color: var(--red); animation: blink 1s infinite; }
+
+.hero-overlay {
+  position: relative;
+  z-index: 10;
+  text-align: center;
+  pointer-events: none;
+  margin-top: 60px;
+}
+
+.hero-tagline {
+  font-family: 'Orbitron', sans-serif;
+  font-size: clamp(0.65rem, 1.5vw, 0.85rem);
+  letter-spacing: 0.3em;
+  color: var(--cyan);
+  text-transform: uppercase;
+  text-shadow: var(--glow);
+  margin-bottom: 16px;
+  opacity: 0;
+  animation: fadeUp 0.8s 3.8s ease forwards;
+}
+
+.hero-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: clamp(2rem, 6vw, 4.5rem);
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 0 60px rgba(0,212,255,0.5);
+  line-height: 1.1;
+  letter-spacing: 0.05em;
+  opacity: 0;
+  animation: fadeUp 0.8s 4s ease forwards;
+}
+
+.hero-title span { color: var(--blue); }
+
+.hero-sub {
+  margin-top: 16px;
+  font-size: 0.75rem;
+  color: rgba(200,232,255,0.5);
+  letter-spacing: 0.2em;
+  opacity: 0;
+  animation: fadeUp 0.8s 4.2s ease forwards;
+}
+
+@keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+
+.scroll-hint {
+  position: absolute;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.6rem;
+  color: rgba(0,212,255,0.4);
+  letter-spacing: 0.2em;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  animation: scrollHint 2s 4.5s ease both infinite;
+  z-index: 10;
+}
+.scroll-arrow { width: 1px; height: 40px; background: linear-gradient(var(--blue), transparent); }
+@keyframes scrollHint { 0%,100%{opacity:0.4;transform:translateX(-50%) translateY(0)} 50%{opacity:1;transform:translateX(-50%) translateY(8px)} }
+
+/* GLASS PANEL */
+.glass-panel {
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(14px);
+  border-radius: 2px;
+}
+
+/* SECTION COMMON */
+.section-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 100px 32px;
+}
+
+.section-label {
+  font-size: 0.6rem;
+  letter-spacing: 0.35em;
+  color: var(--blue);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+  opacity: 0.7;
+}
+
+.section-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: clamp(1.6rem, 4vw, 2.8rem);
+  font-weight: 900;
+  color: #fff;
+  line-height: 1.15;
+  margin-bottom: 24px;
+}
+.section-title span { color: var(--blue); }
+
+/* FADE-IN on scroll */
+.reveal {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+.reveal.visible { opacity: 1; transform: translateY(0); }
+
+/* SECTION 3 - COLLISION */
+#collision {
+  background: linear-gradient(180deg, var(--navy) 0%, #07040f 50%, var(--navy) 100%);
+}
+
+#collision-canvas {
+  width: 100%;
+  height: 400px;
+  display: block;
+}
+
+.collision-info {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-top: 40px;
+}
+
+.metric-box {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.metric-label { font-size: 0.6rem; letter-spacing: 0.2em; color: rgba(200,232,255,0.5); }
+.metric-val {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 2rem;
+  font-weight: 900;
+  color: var(--blue);
+}
+.metric-val.danger { color: var(--red); text-shadow: 0 0 20px var(--red); animation: blink 0.8s infinite; }
+
+.warning-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255,34,68,0.15);
+  border: 1px solid rgba(255,34,68,0.4);
+  color: var(--red);
+  padding: 8px 16px;
+  font-size: 0.7rem;
+  letter-spacing: 0.15em;
+  margin-top: 20px;
+  box-shadow: 0 0 20px rgba(255,34,68,0.2);
+  animation: blink 1s infinite;
+}
+
+.kessler-text {
+  margin-top: 48px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+}
+
+.kessler-text p {
+  font-size: 0.8rem;
+  line-height: 1.8;
+  color: rgba(200,232,255,0.6);
+  border-left: 2px solid var(--glass-border);
+  padding-left: 20px;
+}
+
+/* SECTION 4 - PROCESS */
+#detection {
+  background: var(--navy);
+}
+
+.process-flow {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-top: 48px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.process-step {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.step-block {
+  padding: 14px 18px;
+  border: 1px solid var(--glass-border);
+  background: var(--glass);
+  text-align: center;
+  min-width: 100px;
+  position: relative;
+  cursor: default;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.step-block.active {
+  border-color: var(--blue);
+  box-shadow: var(--glow);
+  background: rgba(0,212,255,0.12);
+}
+
+.step-icon { font-size: 1.2rem; margin-bottom: 6px; }
+.step-name { font-size: 0.55rem; letter-spacing: 0.08em; color: rgba(200,232,255,0.7); line-height: 1.4; }
+
+.step-arrow {
+  width: 24px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--glass-border), var(--blue));
+  position: relative;
+  flex-shrink: 0;
+}
+.step-arrow::after {
+  content: '';
+  position: absolute;
+  right: -4px;
+  top: -3px;
+  border: 4px solid transparent;
+  border-left-color: var(--blue);
+}
+
+.detection-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  margin-top: 48px;
+}
+
+.gauge-wrap {
+  padding: 24px;
+  text-align: center;
+}
+
+.gauge-label { font-size: 0.6rem; letter-spacing: 0.15em; color: rgba(200,232,255,0.5); margin-bottom: 12px; }
+
+.gauge-ring {
+  width: 100px;
+  height: 100px;
+  margin: 0 auto 12px;
+  position: relative;
+}
+
+.gauge-ring svg {
+  transform: rotate(-90deg);
+}
+
+.gauge-val {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 1.3rem;
+  font-weight: 900;
+  color: var(--cyan);
+}
+
+/* SECTION 5 - CONTROL PANEL */
+#control {
+  background: linear-gradient(180deg, var(--navy) 0%, #03071a 100%);
+}
+
+.panel-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 32px;
+  margin-top: 48px;
+}
+
+.control-panel {
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.ctrl-label {
+  font-size: 0.6rem;
+  letter-spacing: 0.15em;
+  color: rgba(200,232,255,0.5);
+  margin-bottom: 8px;
+}
+
+.slider-wrap { display: flex; flex-direction: column; gap: 4px; }
+
+input[type=range] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 3px;
+  background: rgba(0,212,255,0.2);
+  outline: none;
+  cursor: pointer;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  background: var(--blue);
+  border-radius: 50%;
+  box-shadow: var(--glow);
+  cursor: pointer;
+}
+
+.slider-val {
+  font-size: 0.75rem;
+  color: var(--cyan);
+  text-align: right;
+}
+
+.btn-trigger {
+  background: rgba(255,34,68,0.15);
+  border: 1px solid rgba(255,34,68,0.5);
+  color: var(--red);
+  padding: 12px 20px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.15em;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+.btn-trigger:hover {
+  background: rgba(255,34,68,0.3);
+  box-shadow: 0 0 20px rgba(255,34,68,0.3);
+}
+
+.output-panel {
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.risk-meter {
+  position: relative;
+}
+
+.risk-bar-track {
+  height: 8px;
+  background: rgba(0,212,255,0.1);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.risk-bar-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: 4px;
+  transition: width 0.5s ease, background 0.5s ease;
+  background: #00ff88;
+}
+
+.alert-log {
+  flex: 1;
+  font-size: 0.62rem;
+  line-height: 1.8;
+  color: rgba(200,232,255,0.5);
+  max-height: 160px;
+  overflow-y: auto;
+  padding: 12px;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid rgba(0,212,255,0.08);
+}
+
+.alert-log .log-entry { padding: 2px 0; border-bottom: 1px solid rgba(0,212,255,0.05); }
+.alert-log .log-warn { color: var(--red); }
+.alert-log .log-ok { color: #00ff88; }
+
+/* SECTION 6 - HARDWARE */
+#hardware {
+  background: var(--navy);
+}
+
+.hw-flow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  margin-top: 48px;
+  flex-wrap: wrap;
+}
+
+.hw-block {
+  padding: 20px 24px;
+  text-align: center;
+  min-width: 130px;
+}
+
+.hw-icon { font-size: 2rem; margin-bottom: 8px; }
+.hw-name {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--blue);
+  margin-bottom: 4px;
+}
+.hw-desc { font-size: 0.55rem; color: rgba(200,232,255,0.4); line-height: 1.5; }
+
+.hw-arrow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 8px;
+}
+.hw-signal {
+  width: 40px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--blue), transparent);
+  position: relative;
+  overflow: hidden;
+}
+.hw-signal::after {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: -20px;
+  width: 20px;
+  height: 4px;
+  background: var(--cyan);
+  box-shadow: 0 0 8px var(--cyan);
+  animation: signalPulse 1.5s linear infinite;
+}
+@keyframes signalPulse { to { left: calc(100% + 20px); } }
+
+/* SECTION 7 - FUTURE */
+#future {
+  background: linear-gradient(180deg, var(--navy) 0%, #000 100%);
+  text-align: center;
+}
+
+.future-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  margin-top: 48px;
+  text-align: left;
+}
+
+.future-card {
+  padding: 28px;
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.future-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.future-card h3 {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--blue);
+  margin-bottom: 8px;
+  letter-spacing: 0.1em;
+}
+
+.future-card p {
+  font-size: 0.72rem;
+  line-height: 1.7;
+  color: rgba(200,232,255,0.5);
+}
+
+.footer-logo {
+  margin-top: 80px;
+  font-family: 'Orbitron', sans-serif;
+  font-size: clamp(2rem, 8vw, 5rem);
+  font-weight: 900;
+  color: var(--blue);
+  text-shadow: 0 0 60px var(--blue), 0 0 120px rgba(0,212,255,0.2);
+  letter-spacing: 0.2em;
+}
+
+.footer-tagline {
+  font-size: 0.8rem;
+  color: rgba(200,232,255,0.4);
+  letter-spacing: 0.35em;
+  margin-top: 12px;
+  margin-bottom: 40px;
+}
+
+.footer-copy {
+  font-size: 0.55rem;
+  color: rgba(200,232,255,0.2);
+  letter-spacing: 0.15em;
+  padding-bottom: 32px;
+}
+
+/* Tooltip */
+#tooltip {
+  position: fixed;
+  background: rgba(5,10,26,0.95);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(10px);
+  padding: 10px 14px;
+  font-size: 0.62rem;
+  line-height: 1.7;
+  pointer-events: none;
+  z-index: 5000;
+  display: none;
+  max-width: 200px;
+  box-shadow: var(--glow);
+}
+#tooltip strong { color: var(--cyan); display: block; margin-bottom: 4px; font-family: 'Orbitron', sans-serif; font-size: 0.65rem; }
+#tooltip span { color: rgba(200,232,255,0.6); }
+
+@media(max-width: 768px) {
+  .collision-info, .kessler-text, .detection-metrics, .panel-grid, .future-grid { grid-template-columns: 1fr; }
+  .process-flow { gap: 4px; }
+  .step-arrow { width: 12px; }
+  nav .nav-links { display: none; }
+  .hw-flow { gap: 4px; }
+}
+</style>
+</head>
+<body>
+
+<!-- LOADER -->
+<div id="loader">
+  <div class="loader-grid"></div>
+  <div class="loader-logo">ORBYX</div>
+  <div class="loader-bar"><div class="loader-bar-fill"></div></div>
+  <div class="loader-lines">
+    <div class="loader-line">▸ Initializing Orbital Defense Network...</div>
+    <div class="loader-line">▸ Loading Satellite Telemetry...</div>
+    <div class="loader-line">▸ Mapping Orbital Traffic...</div>
+  </div>
+  <div class="loader-status">◉ SYSTEM ONLINE</div>
+</div>
+
+<!-- STARFIELD -->
+<canvas id="starfield"></canvas>
+
+<!-- TOOLTIP -->
+<div id="tooltip"><strong id="tt-name"></strong><span id="tt-body"></span></div>
+
+<!-- MAIN -->
+<div id="main">
+
+  <!-- NAV -->
+  <nav>
+    <div class="nav-logo">ORBYX</div>
+    <ul class="nav-links">
+      <li><a href="#hero">OVERVIEW</a></li>
+      <li><a href="#collision">THREATS</a></li>
+      <li><a href="#detection">DETECTION</a></li>
+      <li><a href="#control">CONTROL</a></li>
+      <li><a href="#future">FUTURE</a></li>
+    </ul>
+    <div class="nav-status"><div class="status-dot"></div>ORBITAL NET: ACTIVE</div>
+  </nav>
+
+  <!-- HERO -->
+  <section id="hero">
+    <canvas id="hero-canvas"></canvas>
+
+    <!-- HUD -->
+    <div class="hero-hud glass-panel">
+      <div class="hud-row"><span class="hud-label">SATELLITES TRACKED</span><span class="hud-val" id="hud-sats">0</span></div>
+      <div class="hud-row"><span class="hud-label">CONJUNCTION ALERTS</span><span class="hud-val warn" id="hud-alerts">0</span></div>
+      <div class="hud-row"><span class="hud-label">ORBITAL CONGESTION</span><span class="hud-val" id="hud-cong">—</span></div>
+      <div class="hud-row"><span class="hud-label">SYSTEM STATUS</span><span class="hud-val" id="hud-status">ACTIVE</span></div>
+    </div>
+
+    <div class="hero-overlay">
+      <div class="hero-tagline">Real-Time Orbital Monitoring & Collision Prevention</div>
+      <div class="hero-title">SECURING<br><span>EARTH'S ORBIT</span></div>
+      <div class="hero-sub">▸ DRAG TO ROTATE · SCROLL TO ZOOM · HOVER SATELLITES ◂</div>
+    </div>
+
+    <div class="scroll-hint">
+      SCROLL
+      <div class="scroll-arrow"></div>
+    </div>
+  </section>
+
+  <!-- COLLISION THREAT -->
+  <section id="collision">
+    <div class="section-inner">
+      <div class="section-label reveal">// THREAT VISUALIZATION</div>
+      <div class="section-title reveal">Collision Threat<br><span>Detection System</span></div>
+
+      <canvas id="collision-canvas" class="reveal"></canvas>
+
+      <div class="collision-info reveal">
+        <div class="metric-box glass-panel">
+          <div class="metric-label">RELATIVE DISTANCE</div>
+          <div class="metric-val danger" id="col-dist">2.4 km</div>
+          <div style="font-size:0.6rem;color:rgba(200,232,255,0.35);margin-top:4px">THRESHOLD: 5.0 km</div>
+        </div>
+        <div class="metric-box glass-panel">
+          <div class="metric-label">RELATIVE VELOCITY</div>
+          <div class="metric-val" id="col-vel">7.8 km/s</div>
+          <div style="font-size:0.6rem;color:rgba(200,232,255,0.35);margin-top:4px">TIME TO CLOSEST APPROACH: 00:04:12</div>
+        </div>
+      </div>
+
+      <div class="warning-badge reveal">
+        ⬤ CONJUNCTION DETECTED — RISK LEVEL: CRITICAL
+      </div>
+
+      <div class="kessler-text reveal">
+        <p>As Low Earth Orbit becomes increasingly congested with thousands of operational satellites and tens of thousands of debris fragments, the risk of cascading collision events — the Kessler Syndrome — grows exponentially. A single high-energy impact can generate thousands of new debris objects.</p>
+        <p>ORBYX provides continuous orbital propagation and conjunction analysis, computing proximity warnings hours in advance. Our distance matrix evaluates every satellite pair across all tracked objects, enabling mission operators to execute avoidance maneuvers with maximum lead time.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- DETECTION -->
+  <section id="detection">
+    <div class="section-inner">
+      <div class="section-label reveal">// DETECTION MECHANISM</div>
+      <div class="section-title reveal">Orbital <span>Defense Pipeline</span></div>
+
+      <div class="process-flow reveal" id="process-flow">
+        <div class="process-step">
+          <div class="step-block" data-step="0">
+            <div class="step-icon">📡</div>
+            <div class="step-name">TLE<br>DATA</div>
+          </div>
+        </div>
+        <div class="step-arrow"></div>
+        <div class="process-step">
+          <div class="step-block" data-step="1">
+            <div class="step-icon">🌍</div>
+            <div class="step-name">ORBITAL<br>PROPAGATION</div>
+          </div>
+        </div>
+        <div class="step-arrow"></div>
+        <div class="process-step">
+          <div class="step-block" data-step="2">
+            <div class="step-icon">📐</div>
+            <div class="step-name">3D POSITION<br>CALC</div>
+          </div>
+        </div>
+        <div class="step-arrow"></div>
+        <div class="process-step">
+          <div class="step-block" data-step="3">
+            <div class="step-icon">🔢</div>
+            <div class="step-name">DISTANCE<br>MATRIX</div>
+          </div>
+        </div>
+        <div class="step-arrow"></div>
+        <div class="process-step">
+          <div class="step-block" data-step="4">
+            <div class="step-icon">⚖️</div>
+            <div class="step-name">RISK<br>EVALUATION</div>
+          </div>
+        </div>
+        <div class="step-arrow"></div>
+        <div class="process-step">
+          <div class="step-block" data-step="5">
+            <div class="step-icon">🚨</div>
+            <div class="step-name">ALERT<br>GENERATION</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="detection-metrics reveal">
+        <div class="gauge-wrap glass-panel">
+          <div class="gauge-label">RISK SCORE</div>
+          <div class="gauge-ring">
+            <svg width="100" height="100" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(0,212,255,0.1)" stroke-width="6"/>
+              <circle id="gauge-risk" cx="50" cy="50" r="40" fill="none" stroke="var(--red)" stroke-width="6" stroke-dasharray="251.2" stroke-dashoffset="100" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="gauge-val" id="risk-score-val">74%</div>
+        </div>
+        <div class="gauge-wrap glass-panel">
+          <div class="gauge-label">TCA COUNTDOWN</div>
+          <div class="gauge-ring">
+            <svg width="100" height="100" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(0,212,255,0.1)" stroke-width="6"/>
+              <circle id="gauge-tca" cx="50" cy="50" r="40" fill="none" stroke="var(--blue)" stroke-width="6" stroke-dasharray="251.2" stroke-dashoffset="150" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="gauge-val" id="tca-val" style="font-size:0.9rem">04:12</div>
+        </div>
+        <div class="gauge-wrap glass-panel">
+          <div class="gauge-label">PROPAGATION ACCURACY</div>
+          <div class="gauge-ring">
+            <svg width="100" height="100" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(0,212,255,0.1)" stroke-width="6"/>
+              <circle cx="50" cy="50" r="40" fill="none" stroke="#00ff88" stroke-width="6" stroke-dasharray="251.2" stroke-dashoffset="25" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="gauge-val" style="color:#00ff88">99%</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONTROL PANEL -->
+  <section id="control">
+    <div class="section-inner">
+      <div class="section-label reveal">// LIVE SIMULATION</div>
+      <div class="section-title reveal">Mission <span>Control Interface</span></div>
+
+      <div class="panel-grid reveal">
+        <div class="control-panel glass-panel">
+          <div style="font-family:'Orbitron',sans-serif;font-size:0.75rem;color:var(--blue);letter-spacing:0.15em;margin-bottom:4px;">INPUT PARAMETERS</div>
+
+          <div class="slider-wrap">
+            <div class="ctrl-label">NUMBER OF SATELLITES</div>
+            <input type="range" min="5" max="50" value="18" id="sl-sats">
+            <div class="slider-val" id="sl-sats-val">18</div>
+          </div>
+
+          <div class="slider-wrap">
+            <div class="ctrl-label">RISK THRESHOLD (km)</div>
+            <input type="range" min="1" max="20" value="5" id="sl-thresh">
+            <div class="slider-val" id="sl-thresh-val">5.0 km</div>
+          </div>
+
+          <div class="slider-wrap">
+            <div class="ctrl-label">ORBITAL ALTITUDE (km)</div>
+            <input type="range" min="300" max="2000" value="550" id="sl-alt">
+            <div class="slider-val" id="sl-alt-val">550 km</div>
+          </div>
+
+          <button class="btn-trigger" id="btn-trigger">⚠ TRIGGER CONJUNCTION</button>
+        </div>
+
+        <div class="output-panel glass-panel">
+          <div style="font-family:'Orbitron',sans-serif;font-size:0.75rem;color:var(--blue);letter-spacing:0.15em;margin-bottom:4px;">SYSTEM OUTPUT</div>
+
+          <div class="risk-meter">
+            <div class="ctrl-label">GLOBAL RISK LEVEL</div>
+            <div class="risk-bar-track"><div class="risk-bar-fill" id="risk-bar"></div></div>
+            <div style="display:flex;justify-content:space-between;margin-top:4px">
+              <span style="font-size:0.55rem;color:rgba(200,232,255,0.3)">LOW</span>
+              <span style="font-size:0.7rem;font-family:'Orbitron',sans-serif;color:var(--cyan)" id="risk-pct">12%</span>
+              <span style="font-size:0.55rem;color:rgba(200,232,255,0.3)">CRITICAL</span>
+            </div>
+          </div>
+
+          <div>
+            <div class="ctrl-label">ALERT LOG</div>
+            <div class="alert-log" id="alert-log">
+              <div class="log-entry log-ok">[00:00:01] SYSTEM INITIALIZED</div>
+              <div class="log-entry">[00:00:02] Tracking 18 satellites across LEO</div>
+              <div class="log-entry">[00:00:05] Propagation complete — 0 conjunctions detected</div>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div style="padding:12px;background:rgba(0,0,0,0.3);border:1px solid var(--glass-border)">
+              <div class="ctrl-label">HIGH-RISK PAIR</div>
+              <div style="font-size:0.7rem;color:var(--red)" id="high-risk-pair">NONE</div>
+            </div>
+            <div style="padding:12px;background:rgba(0,0,0,0.3);border:1px solid var(--glass-border)">
+              <div class="ctrl-label">ALERTS ACTIVE</div>
+              <div style="font-size:0.7rem;color:var(--cyan);font-family:'Orbitron',sans-serif" id="active-alerts">0</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HARDWARE -->
+  <section id="hardware">
+    <div class="section-inner">
+      <div class="section-label reveal">// PHYSICAL ALERT SYSTEM</div>
+      <div class="section-title reveal">ESP32 <span>Hardware Interface</span></div>
+
+      <div class="hw-flow reveal">
+        <div class="hw-block glass-panel">
+          <div class="hw-icon">🛰</div>
+          <div class="hw-name">ORBYX CORE</div>
+          <div class="hw-desc">Conjunction detected,<br>risk threshold exceeded</div>
+        </div>
+        <div class="hw-arrow"><div class="hw-signal"></div></div>
+        <div class="hw-block glass-panel">
+          <div class="hw-icon">📶</div>
+          <div class="hw-name">MQTT BROKER</div>
+          <div class="hw-desc">Alert payload<br>transmitted wirelessly</div>
+        </div>
+        <div class="hw-arrow"><div class="hw-signal"></div></div>
+        <div class="hw-block glass-panel">
+          <div class="hw-icon">🔌</div>
+          <div class="hw-name">ESP32</div>
+          <div class="hw-desc">Receives JSON<br>alert signal</div>
+        </div>
+        <div class="hw-arrow"><div class="hw-signal"></div></div>
+        <div class="hw-block glass-panel">
+          <div class="hw-icon">🚨</div>
+          <div class="hw-name">LED + BUZZER</div>
+          <div class="hw-desc">Red LED flashes,<br>buzzer activates</div>
+        </div>
+        <div class="hw-arrow"><div class="hw-signal"></div></div>
+        <div class="hw-block glass-panel">
+          <div class="hw-icon">📱</div>
+          <div class="hw-name">NOTIFICATION</div>
+          <div class="hw-desc">Wireless push alert<br>to operator device</div>
+        </div>
+      </div>
+
+      <div class="reveal" style="margin-top:40px;max-width:600px">
+        <div class="glass-panel" style="padding:24px">
+          <div style="font-size:0.6rem;letter-spacing:0.15em;color:var(--blue);margin-bottom:12px">ESP32 ALERT PROTOCOL</div>
+          <div style="font-size:0.65rem;line-height:2;color:rgba(200,232,255,0.5)">
+            When ORBYX detects a conjunction event crossing the defined risk threshold,<br>
+            a structured JSON payload is broadcast via MQTT to all subscribed ESP32 nodes.<br>
+            Each node activates onboard peripherals — red LED pulse at 2Hz, 1kHz buzzer tone —<br>
+            and simultaneously forwards the alert to the operator's mobile device.
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FUTURE -->
+  <section id="future">
+    <div class="section-inner">
+      <div class="section-label reveal" style="text-align:center">// ROADMAP</div>
+      <div class="section-title reveal" style="text-align:center">Future of <span>Orbital Security</span></div>
+
+      <div class="future-grid reveal">
+        <div class="future-card glass-panel">
+          <div class="future-icon">🧠</div>
+          <div>
+            <h3>AI Collision Prediction</h3>
+            <p>Deep learning models trained on historical conjunction data to predict high-risk events days in advance with probabilistic confidence scoring.</p>
+          </div>
+        </div>
+        <div class="future-card glass-panel">
+          <div class="future-icon">🤖</div>
+          <div>
+            <h3>Autonomous Maneuver Suggestions</h3>
+            <p>ORBYX will compute optimal delta-v maneuvers and beam corrective burn parameters directly to satellite operators via secure uplink.</p>
+          </div>
+        </div>
+        <div class="future-card glass-panel">
+          <div class="future-icon">🌐</div>
+          <div>
+            <h3>Global Orbital Traffic Coordination</h3>
+            <p>Inter-agency data sharing framework enabling real-time coordination between commercial, governmental, and scientific satellite operators worldwide.</p>
+          </div>
+        </div>
+        <div class="future-card glass-panel">
+          <div class="future-icon">🔭</div>
+          <div>
+            <h3>Deep Space Tracking</h3>
+            <p>Extending ORBYX's monitoring envelope beyond GEO to cover cislunar space, Lagrange points, and eventual deep space transit corridors.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer-logo reveal">ORBYX</div>
+      <div class="footer-tagline reveal">Securing Earth's Orbit.</div>
+      <div class="footer-copy reveal">© 2026 ORBYX ORBITAL DEFENSE SYSTEMS · CLASSIFIED NETWORK ACCESS</div>
+    </div>
+  </section>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ─── LOADER ─── */
+setTimeout(() => {
+  const loader = document.getElementById('loader');
+  loader.classList.add('fade-out');
+  setTimeout(() => {
+    loader.style.display = 'none';
+    document.getElementById('main').classList.add('visible');
+    initHero();
+    initStarfield();
+    initCollisionCanvas();
+    startProcessFlow();
+    startTCA();
+    initControls();
+    initReveal();
+  }, 800);
+}, 3600);
+
+/* ─── STARFIELD ─── */
+function initStarfield() {
+  const canvas = document.getElementById('starfield');
+  const ctx = canvas.getContext('2d');
+  let stars = [];
+  function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+  window.addEventListener('resize', resize); resize();
+  for (let i = 0; i < 200; i++) stars.push({ x: Math.random(), y: Math.random(), r: Math.random() * 1.2, v: Math.random() * 0.00005 + 0.00002 });
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    stars.forEach(s => {
+      s.x += s.v; if (s.x > 1) s.x = 0;
+      ctx.beginPath(); ctx.arc(s.x * canvas.width, s.y * canvas.height, s.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(200,232,255,${0.2 + s.r * 0.4})`; ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+}
+
+/* ─── HERO THREE.JS ─── */
+function initHero() {
+  const canvas = document.getElementById('hero-canvas');
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(canvas.offsetWidth, canvas.offsetHeight);
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(45, canvas.offsetWidth / canvas.offsetHeight, 0.1, 1000);
+  camera.position.set(0, 0, 3.5);
+
+  // Lighting
+  const ambient = new THREE.AmbientLight(0x112244, 1.2);
+  scene.add(ambient);
+  const sun = new THREE.DirectionalLight(0xffffff, 2);
+  sun.position.set(5, 3, 5);
+  scene.add(sun);
+
+  // Earth
+  const earthGeo = new THREE.SphereGeometry(1, 64, 64);
+  const earthMat = new THREE.MeshPhongMaterial({
+    color: 0x1a4fa0,
+    emissive: 0x051224,
+    shininess: 30,
+    specular: 0x223366,
+  });
+  // Add grid-like texture via vertex colors to simulate continents
+  const earthMesh = new THREE.Mesh(earthGeo, earthMat);
+  scene.add(earthMesh);
+
+  // Atmosphere glow
+  const atmGeo = new THREE.SphereGeometry(1.06, 64, 64);
+  const atmMat = new THREE.MeshPhongMaterial({
+    color: 0x0088ff,
+    transparent: true,
+    opacity: 0.12,
+    side: THREE.FrontSide,
+    blending: THREE.AdditiveBlending,
+  });
+  scene.add(new THREE.Mesh(atmGeo, atmMat));
+
+  // Satellites
+  const SAT_DATA = [
+    { name: 'ORBYX-1', orbitR: 1.55, speed: 0.008, inc: 0.3, alt: '550 km', vel: '7.6 km/s' },
+    { name: 'ORBYX-2', orbitR: 1.7,  speed: 0.006, inc: 1.1, alt: '750 km', vel: '7.4 km/s' },
+    { name: 'ORBYX-3', orbitR: 1.45, speed: 0.011, inc: -0.5, alt: '450 km', vel: '7.7 km/s' },
+    { name: 'DEBRIS-A', orbitR: 1.6,  speed: 0.009, inc: 0.7, alt: '600 km', vel: '7.5 km/s' },
+    { name: 'DEBRIS-B', orbitR: 1.52, speed: 0.0075,inc: -0.2, alt: '520 km', vel: '7.6 km/s' },
+    { name: 'ISS-SIM',  orbitR: 1.42, speed: 0.013, inc: 0.9, alt: '410 km', vel: '7.7 km/s' },
+    { name: 'STARLINK-X',orbitR:1.65, speed: 0.007, inc: -0.8, alt: '650 km', vel: '7.5 km/s' },
+    { name: 'SENTINEL',  orbitR: 1.8,  speed: 0.005, inc: 1.5, alt: '800 km', vel: '7.4 km/s' },
+  ];
+
+  const satMeshes = [];
+  const trailPoints = SAT_DATA.map(() => []);
+  const trailLines = [];
+
+  SAT_DATA.forEach((sat, i) => {
+    // Satellite body
+    const geo = new THREE.BoxGeometry(0.025, 0.01, 0.04);
+    const mat = new THREE.MeshPhongMaterial({ color: 0x88ccff, emissive: 0x003366, shininess: 80 });
+    const mesh = new THREE.Mesh(geo, mat);
+
+    // Solar panels
+    const panelGeo = new THREE.PlaneGeometry(0.06, 0.012);
+    const panelMat = new THREE.MeshPhongMaterial({ color: 0x1144aa, side: THREE.DoubleSide });
+    const p1 = new THREE.Mesh(panelGeo, panelMat);
+    const p2 = new THREE.Mesh(panelGeo, panelMat);
+    p1.position.set(0.045, 0, 0); p2.position.set(-0.045, 0, 0);
+    mesh.add(p1, p2);
+
+    // Engine glow
+    const glowGeo = new THREE.SphereGeometry(0.012, 8, 8);
+    const glowMat = new THREE.MeshBasicMaterial({ color: 0x00d4ff, transparent: true, opacity: 0.8 });
+    const glow = new THREE.Mesh(glowGeo, glowMat);
+    glow.position.set(0, 0, -0.025);
+    mesh.add(glow);
+
+    mesh.userData = { ...sat, index: i, glowMat, angle: (i / SAT_DATA.length) * Math.PI * 2 };
+    satMeshes.push(mesh);
+    scene.add(mesh);
+
+    // Trail
+    const trailGeo = new THREE.BufferGeometry();
+    const trailMat = new THREE.LineBasicMaterial({ color: 0x00d4ff, transparent: true, opacity: 0.3 });
+    const line = new THREE.Line(trailGeo, trailMat);
+    trailLines.push({ line, mat: trailMat });
+    scene.add(line);
+
+    // Orbit ring (faint)
+    const ringGeo = new THREE.TorusGeometry(sat.orbitR, 0.002, 6, 128);
+    const ringMat = new THREE.MeshBasicMaterial({ color: 0x002244, transparent: true, opacity: 0.25 });
+    const ring = new THREE.Mesh(ringGeo, ringMat);
+    ring.rotation.x = sat.inc;
+    scene.add(ring);
+  });
+
+  // Mouse interaction
+  let isDragging = false, prevMouse = { x: 0, y: 0 };
+  let rotX = 0, rotY = 0;
+  let zoom = 3.5;
+
+  canvas.addEventListener('mousedown', e => { isDragging = true; prevMouse = { x: e.clientX, y: e.clientY }; });
+  window.addEventListener('mouseup', () => { isDragging = false; });
+  window.addEventListener('mousemove', e => {
+    if (isDragging) {
+      rotY += (e.clientX - prevMouse.x) * 0.006;
+      rotX += (e.clientY - prevMouse.y) * 0.004;
+      rotX = Math.max(-1.2, Math.min(1.2, rotX));
+      prevMouse = { x: e.clientX, y: e.clientY };
+    }
+  });
+  canvas.addEventListener('wheel', e => {
+    zoom += e.deltaY * 0.005;
+    zoom = Math.max(2, Math.min(7, zoom));
+    e.preventDefault();
+  }, { passive: false });
+
+  // Tooltip raycaster
+  const raycaster = new THREE.Raycaster();
+  const mouse2D = new THREE.Vector2();
+  const tooltip = document.getElementById('tooltip');
+
+  canvas.addEventListener('mousemove', e => {
+    const rect = canvas.getBoundingClientRect();
+    mouse2D.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse2D.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+  });
+
+  // HUD
+  let alertCount = 0;
+  document.getElementById('hud-sats').textContent = SAT_DATA.length;
+
+  let t = 0;
+  function animate() {
+    requestAnimationFrame(animate);
+    t += 0.016;
+
+    earthMesh.rotation.y += 0.001;
+
+    // Update satellites
+    satMeshes.forEach((mesh, i) => {
+      const d = mesh.userData;
+      d.angle += d.speed;
+      const x = Math.cos(d.angle) * d.orbitR;
+      const z = Math.sin(d.angle) * d.orbitR;
+      const y = Math.sin(d.angle * 0.3 + d.inc * 2) * d.orbitR * Math.sin(d.inc);
+      mesh.position.set(x, y, z);
+      mesh.lookAt(0, 0, 0);
+
+      // Engine glow pulse
+      d.glowMat.opacity = 0.5 + Math.sin(t * 3 + i) * 0.3;
+
+      // Trail
+      const pts = trailPoints[i];
+      pts.push(new THREE.Vector3(x, y, z));
+      if (pts.length > 60) pts.shift();
+      const arr = new Float32Array(pts.length * 3);
+      pts.forEach((p, j) => { arr[j * 3] = p.x; arr[j * 3 + 1] = p.y; arr[j * 3 + 2] = p.z; });
+      trailLines[i].line.geometry.setAttribute('position', new THREE.BufferAttribute(arr, 3));
+    });
+
+    // Check proximity for alerts
+    alertCount = 0;
+    for (let a = 0; a < satMeshes.length; a++) {
+      for (let b = a + 1; b < satMeshes.length; b++) {
+        const dist = satMeshes[a].position.distanceTo(satMeshes[b].position);
+        if (dist < 0.15) alertCount++;
+      }
+    }
+    document.getElementById('hud-alerts').textContent = alertCount;
+    const cong = ((alertCount / 5) * 100).toFixed(0);
+    document.getElementById('hud-cong').textContent = Math.min(cong, 99) + '%';
+
+    // Tooltip
+    raycaster.setFromCamera(mouse2D, camera);
+    const hits = raycaster.intersectObjects(satMeshes, true);
+    if (hits.length > 0) {
+      let obj = hits[0].object;
+      while (obj.parent && !obj.userData.name) obj = obj.parent;
+      const d = obj.userData;
+      if (d.name) {
+        tooltip.style.display = 'block';
+        tooltip.style.left = (event.clientX + 14) + 'px';
+        tooltip.style.top = (event.clientY - 10) + 'px';
+        document.getElementById('tt-name').textContent = d.name;
+        const nearest = Math.min(...satMeshes.filter((_, i) => i !== d.index).map(s => s.position.distanceTo(obj.position)));
+        document.getElementById('tt-body').innerHTML =
+          `ALT: ${d.alt}<br>VEL: ${d.vel}<br>NEAREST: ${(nearest * 200).toFixed(1)} km`;
+      }
+    } else {
+      tooltip.style.display = 'none';
+    }
+
+    // Camera
+    camera.position.x = Math.sin(rotY) * Math.cos(rotX) * zoom;
+    camera.position.y = Math.sin(rotX) * zoom;
+    camera.position.z = Math.cos(rotY) * Math.cos(rotX) * zoom;
+    camera.lookAt(0, 0, 0);
+
+    renderer.render(scene, camera);
+  }
+  animate();
+
+  window.addEventListener('resize', () => {
+    const w = canvas.offsetWidth, h = canvas.offsetHeight;
+    renderer.setSize(w, h);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+  });
+}
+
+/* ─── COLLISION CANVAS ─── */
+function initCollisionCanvas() {
+  const canvas = document.getElementById('collision-canvas');
+  const ctx = canvas.getContext('2d');
+  let t = 0;
+  let phase = 0; // 0=approaching, 1=alert
+
+  function draw() {
+    requestAnimationFrame(draw);
+    t += 0.01;
+    const W = canvas.offsetWidth, H = canvas.height = 400;
+    canvas.width = W;
+    ctx.clearRect(0, 0, W, H);
+
+    // Background grid
+    ctx.strokeStyle = 'rgba(0,212,255,0.04)';
+    ctx.lineWidth = 1;
+    for (let x = 0; x < W; x += 40) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+    for (let y = 0; y < H; y += 40) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+
+    // Animate two satellites approaching
+    const cycle = (t % (Math.PI * 2));
+    const frac = (Math.sin(cycle * 0.5) + 1) / 2;
+    const sep = 80 + frac * 220;
+
+    const cx = W / 2, cy = H / 2;
+    const s1x = cx - sep / 2, s1y = cy - 30;
+    const s2x = cx + sep / 2, s2y = cy + 30;
+
+    const isClose = sep < 120;
+    const alertColor = isClose ? '#ff2244' : '#00d4ff';
+    const dist = (sep * 0.06).toFixed(2);
+
+    // Orbit lines
+    ctx.beginPath();
+    ctx.ellipse(cx, cy - 30, 220, 40, -0.1, 0, Math.PI * 2);
+    ctx.strokeStyle = isClose ? 'rgba(255,34,68,0.3)' : 'rgba(0,212,255,0.15)';
+    ctx.lineWidth = 1.5; ctx.stroke();
+
+    ctx.beginPath();
+    ctx.ellipse(cx, cy + 30, 220, 40, 0.1, 0, Math.PI * 2);
+    ctx.strokeStyle = isClose ? 'rgba(255,34,68,0.3)' : 'rgba(0,212,255,0.15)';
+    ctx.lineWidth = 1.5; ctx.stroke();
+
+    // Distance line
+    ctx.beginPath();
+    ctx.moveTo(s1x, s1y); ctx.lineTo(s2x, s2y);
+    ctx.strokeStyle = isClose ? 'rgba(255,34,68,0.6)' : 'rgba(0,212,255,0.3)';
+    ctx.setLineDash([4, 4]); ctx.lineWidth = 1; ctx.stroke(); ctx.setLineDash([]);
+
+    // Distance label
+    ctx.fillStyle = alertColor;
+    ctx.font = 'bold 13px "Share Tech Mono", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(dist + ' km', cx, cy - 10);
+
+    // Satellites
+    function drawSat(x, y, angle, label) {
+      ctx.save(); ctx.translate(x, y); ctx.rotate(angle);
+      // Body
+      ctx.fillStyle = '#88ccff';
+      ctx.fillRect(-10, -5, 20, 10);
+      // Panels
+      ctx.fillStyle = '#1144aa';
+      ctx.fillRect(-24, -3, 12, 6);
+      ctx.fillRect(12, -3, 12, 6);
+      // Glow
+      const grd = ctx.createRadialGradient(0, 0, 0, 0, 0, 30);
+      grd.addColorStop(0, isClose ? 'rgba(255,34,68,0.3)' : 'rgba(0,212,255,0.25)');
+      grd.addColorStop(1, 'transparent');
+      ctx.fillStyle = grd;
+      ctx.beginPath(); ctx.arc(0, 0, 30, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+      ctx.fillStyle = isClose ? '#ff2244' : '#00d4ff';
+      ctx.font = '10px "Share Tech Mono"';
+      ctx.textAlign = 'center';
+      ctx.fillText(label, x, y - 22);
+    }
+
+    drawSat(s1x, s1y, -0.2, 'ORBYX-1');
+    drawSat(s2x, s2y, 0.2, 'DEBRIS-A');
+
+    // Alert pulse
+    if (isClose) {
+      const pulse = (Math.sin(t * 8) + 1) / 2;
+      ctx.beginPath();
+      ctx.arc(s1x, s1y, 25 + pulse * 20, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(255,34,68,${0.3 + pulse * 0.4})`;
+      ctx.lineWidth = 2; ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(s2x, s2y, 25 + pulse * 20, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(255,34,68,${0.3 + pulse * 0.4})`;
+      ctx.stroke();
+    }
+
+    // Update metrics
+    document.getElementById('col-dist').textContent = dist + ' km';
+    document.getElementById('col-dist').className = 'metric-val ' + (isClose ? 'danger' : '');
+  }
+  draw();
+}
+
+/* ─── PROCESS FLOW ANIMATION ─── */
+function startProcessFlow() {
+  const steps = document.querySelectorAll('.step-block');
+  let active = 0;
+  setInterval(() => {
+    steps.forEach(s => s.classList.remove('active'));
+    steps[active].classList.add('active');
+    active = (active + 1) % steps.length;
+  }, 700);
+}
+
+/* ─── TCA COUNTDOWN ─── */
+function startTCA() {
+  let secs = 252;
+  setInterval(() => {
+    secs--;
+    if (secs < 0) secs = 600;
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    const el = document.getElementById('tca-val');
+    if (el) el.textContent = m.toString().padStart(2,'0') + ':' + s.toString().padStart(2,'0');
+    const offset = 251.2 - (secs / 600) * 251.2;
+    const gauge = document.getElementById('gauge-tca');
+    if (gauge) gauge.setAttribute('stroke-dashoffset', offset);
+  }, 1000);
+}
+
+/* ─── CONTROL PANEL ─── */
+function initControls() {
+  const slSats = document.getElementById('sl-sats');
+  const slThresh = document.getElementById('sl-thresh');
+  const slAlt = document.getElementById('sl-alt');
+  const alertLog = document.getElementById('alert-log');
+  let riskPct = 12;
+
+  function updateRisk() {
+    const satFactor = parseInt(slSats.value) / 50;
+    const threshFactor = 1 - (parseInt(slThresh.value) / 20);
+    riskPct = Math.round((satFactor * 0.6 + threshFactor * 0.4) * 100);
+    const bar = document.getElementById('risk-bar');
+    bar.style.width = riskPct + '%';
+    bar.style.background = riskPct > 70 ? '#ff2244' : riskPct > 40 ? '#ffaa00' : '#00ff88';
+    document.getElementById('risk-pct').textContent = riskPct + '%';
+  }
+
+  slSats.addEventListener('input', () => {
+    document.getElementById('sl-sats-val').textContent = slSats.value;
+    document.getElementById('hud-sats').textContent = slSats.value;
+    addLog(`Satellite count updated to ${slSats.value}`);
+    updateRisk();
+  });
+
+  slThresh.addEventListener('input', () => {
+    document.getElementById('sl-thresh-val').textContent = parseFloat(slThresh.value).toFixed(1) + ' km';
+    addLog(`Risk threshold set to ${slThresh.value}.0 km`);
+    updateRisk();
+  });
+
+  slAlt.addEventListener('input', () => {
+    document.getElementById('sl-alt-val').textContent = slAlt.value + ' km';
+    addLog(`Orbital altitude set to ${slAlt.value} km`);
+  });
+
+  let alertsActive = 0;
+  document.getElementById('btn-trigger').addEventListener('click', () => {
+    alertsActive++;
+    document.getElementById('active-alerts').textContent = alertsActive;
+    document.getElementById('high-risk-pair').textContent = `ORBYX-${Math.ceil(Math.random()*3)} / DEBRIS-${String.fromCharCode(65+Math.floor(Math.random()*3))}`;
+    addLog('⚠ CONJUNCTION TRIGGERED — initiating evasion protocol', true);
+    addLog('Maneuver uplink sequence started...', false);
+    document.getElementById('risk-bar').style.background = '#ff2244';
+    document.getElementById('risk-bar').style.width = '92%';
+    document.getElementById('risk-pct').textContent = '92%';
+    setTimeout(() => { addLog('Maneuver complete — conjunction avoided', false); updateRisk(); alertsActive = Math.max(0, alertsActive-1); document.getElementById('active-alerts').textContent = alertsActive; }, 3000);
+  });
+
+  function addLog(msg, isWarn) {
+    const now = new Date();
+    const ts = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
+    const entry = document.createElement('div');
+    entry.className = 'log-entry' + (isWarn ? ' log-warn' : '');
+    entry.textContent = `[${ts}] ${msg}`;
+    alertLog.prepend(entry);
+    if (alertLog.children.length > 20) alertLog.removeChild(alertLog.lastChild);
+  }
+
+  updateRisk();
+}
+
+/* ─── SCROLL REVEAL ─── */
+function initReveal() {
+  const els = document.querySelectorAll('.reveal');
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); } });
+  }, { threshold: 0.15 });
+  els.forEach(el => obs.observe(el));
+}
+</script>
+</body>
+</html>
